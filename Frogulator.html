@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frogulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for sound generation (Ribbit!) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', 'Comic Sans', cursive;
+            background-color: #d1f7c8; /* Light green pond color */
+        }
+        .calculator-container {
+            background-color: #e9fae3;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            border-radius: 2rem;
+            border: 4px solid #4a9133;
+        }
+        .lilypad-button {
+            background-color: #63b361; /* Darker green for lily pads */
+            border: 3px solid #4a9133;
+            transition: all 0.1s ease-in-out;
+            box-shadow: 0 4px 0 #4a9133;
+        }
+        .lilypad-button:active {
+            box-shadow: 0 1px 0 #4a9133;
+            transform: translateY(3px);
+        }
+        .frog-face-display {
+            background-color: #79d679;
+            border: 3px solid #4a9133;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+            color: #4a9133;
+        }
+        .froggy-eye {
+            color: #4a9133;
+            font-size: 2.5rem;
+            line-height: 1;
+        }
+        .equals-button {
+            background-color: #ff914d; /* Bright orange for the tongue */
+            border: 3px solid #e07222;
+            box-shadow: 0 4px 0 #e07222;
+        }
+        .equals-button:active {
+            box-shadow: 0 1px 0 #e07222;
+            transform: translateY(3px);
+        }
+        .clear-button {
+            background-color: #ff6b6b; /* Red for 'clear' */
+            border: 3px solid #e63946;
+            box-shadow: 0 4px 0 #e63946;
+        }
+        .clear-button:active {
+            box-shadow: 0 1px 0 #e63946;
+            transform: translateY(3px);
+        }
+        .ans-button {
+            background-color: #56a7f0; /* Blue for 'ANS' */
+            border: 3px solid #3c7dc5;
+            box-shadow: 0 4px 0 #3c7dc5;
+        }
+        .ans-button:active {
+            box-shadow: 0 1px 0 #3c7dc5;
+            transform: translateY(3px);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <!-- Status Message Display (Custom Alert) -->
+    <div id="status-message" class="fixed top-4 bg-yellow-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none text-center z-50"></div>
+
+    <!-- Calculator Container -->
+    <div class="calculator-container w-full max-w-xs p-6">
+        <div class="flex flex-col items-center mb-4">
+            <h1 class="text-3xl font-bold text-center text-[#4a9133] mb-2">Frogulator</h1>
+            <svg class="w-20 h-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="currentColor">
+                <!-- Frog head -->
+                <circle cx="100" cy="100" r="95" fill="#63b361"/>
+                <!-- Eyes -->
+                <path d="M70,70 Q 50,40 30,70" fill="none" stroke="#4a9133" stroke-width="5" stroke-linecap="round"/>
+                <path d="M130,70 Q 150,40 170,70" fill="none" stroke="#4a9133" stroke-width="5" stroke-linecap="round"/>
+                <circle cx="70" cy="70" r="10" fill="#4a9133"/>
+                <circle cx="130" cy="70" r="10" fill="#4a9133"/>
+                <circle cx="70" cy="70" r="4" fill="white"/>
+                <circle cx="130" cy="70" r="4" fill="white"/>
+                <!-- Mouth -->
+                <path d="M70,140 A 60,60 0 0 0 130,140" fill="none" stroke="#4a9133" stroke-width="5" stroke-linecap="round"/>
+                <!-- Nose -->
+                <circle cx="85" cy="110" r="3" fill="#4a9133"/>
+                <circle cx="115" cy="110" r="3" fill="#4a9133"/>
+                <!-- Ears (Protruding circles) -->
+                <circle cx="50" cy="35" r="15" fill="#63b361" stroke="#4a9133" stroke-width="3"/>
+                <circle cx="150" cy="35" r="15" fill="#63b361" stroke="#4a9133" stroke-width="3"/>
+            </svg>
+        </div>
+
+        <!-- Display Area -->
+        <div id="display" class="frog-face-display text-4xl text-right p-4 mb-4 rounded-full overflow-hidden whitespace-nowrap">0</div>
+
+        <!-- Button Grid -->
+        <div class="grid grid-cols-4 gap-4" onclick="handleButtonClick(event)">
+            <button class="lilypad-button text-white text-xl p-4 rounded-full clear-button" data-value="C">C</button>
+            <button class="lilypad-button text-white text-xl p-4 rounded-full ans-button flex items-center justify-center" data-value="ans">ANS</button>
+            <button class="lilypad-button text-white text-xl p-4 rounded-full" data-value="/">/</button>
+            <button class="lilypad-button text-white text-xl p-4 rounded-full" data-value="*">*</button>
+            
+            <button class="lilypad-button text-white text-xl p-4 rounded-full" data-value="7">7</button>
+            <button class="lilypad-button text-white text-xl p-4 rounded-full" data-value="8">8</button>
+            <button class="lilypad-button text-white text-xl p-4 rounded-full" data-value="9">9</button>
+            <button class="lilypad-button text-white text-xl p-4 rounded-full" data-value="-">-</button>
+            
+            <button class="lilypad-button text-white text-xl p-4 rounded-full" data-value="4">4</button>
+            <button class="lilypad-button text-white text-xl p-4 rounded-full" data-value="5">5</button>
+            <button class="lilypad-button text-white text-xl p-4 rounded-full" data-value="6">6</button>
+            <button class="lilypad-button text-white text-xl p-4 rounded-full" data-value="+">+</button>
+
+            <button class="lilypad-button text-white text-xl p-4 rounded-full" data-value="1">1</button>
+            <button class="lilypad-button text-white text-xl p-4 rounded-full" data-value="2">2</button>
+            <button class="lilypad-button text-white text-xl p-4 rounded-full" data-value="3">3</button>
+            <button class="lilypad-button text-white text-xl p-4 rounded-full row-span-2 equals-button" data-value="=">=</button>
+            
+            <button class="lilypad-button text-white text-xl p-4 rounded-full col-span-2" data-value="0">0</button>
+            <button class="lilypad-button text-white text-xl p-4 rounded-full" data-value=".">.</button>
+        </div>
+    </div>
+
+    <script>
+        // Get the display element
+        const display = document.getElementById('display');
+        
+        // Get the status message element
+        const statusMessage = document.getElementById('status-message');
+
+        // State variables for the calculator
+        let currentInput = '';
+        let operator = null;
+        let previousInput = '';
+        let lastAnswer = null;
+        let lastOperator = null;
+        let lastOperand = null;
+        let shouldClearDisplay = false;
+        let d0eErrorDisabled = false;
+
+        // --- Tone.js Setup for Ribbit Sound ---
+        // Initialize Tone.js components globally
+        const synth = new Tone.Synth({
+            oscillator: { type: "square" }, // A square wave helps give a buzzing, electronic texture
+            envelope: {
+                attack: 0.005,
+                decay: 0.15,
+                sustain: 0.01,
+                release: 0.15
+            }
+        }).toDestination();
+
+        function playRibbitSound() {
+            // Start the audio context if it's suspended (required by browsers)
+            if (Tone.context.state !== 'running') {
+                Tone.start();
+            }
+            // Trigger two short, low notes slightly staggered to sound like a ribbit
+            synth.triggerAttackRelease("G2", "16n");
+            synth.triggerAttackRelease("F2", "16n", "+0.08"); 
+        }
+        // --- End Tone.js Setup ---
+
+        // Function to show a temporary message (replaces alert)
+        function showMessage(text) {
+            statusMessage.textContent = text;
+            statusMessage.classList.remove('opacity-0');
+            statusMessage.classList.add('opacity-100');
+
+            // Hide the message after 2 seconds
+            setTimeout(() => {
+                statusMessage.classList.remove('opacity-100');
+                statusMessage.classList.add('opacity-0');
+            }, 2000);
+        }
+
+
+        // Function to update the display text
+        function updateDisplay() {
+            display.textContent = currentInput || '0';
+        }
+
+        // Main function to handle button clicks
+        function handleButtonClick(event) {
+            playRibbitSound(); // Play sound on every button click!
+            
+            const button = event.target.closest('button');
+            if (!button) return;
+
+            const value = button.dataset.value;
+            
+            // Check for the special 'C' (clear) button
+            if (value === 'C') {
+                handleClear();
+                return;
+            }
+
+            // Handle different button types
+            if (['+', '-', '*', '/'].includes(value)) {
+                handleOperator(value);
+            } else if (value === '=') {
+                handleEquals();
+            } else if (value === 'ans') {
+                handleAns();
+            } else {
+                handleNumber(value);
+            }
+        }
+        
+        // Function to handle number and decimal point buttons
+        function handleNumber(number) {
+            // Prevent multiple decimal points
+            if (number === '.' && currentInput.includes('.')) {
+                return;
+            }
+            
+            // Clear the display if a new number is started after a calculation
+            if (shouldClearDisplay) {
+                currentInput = number;
+                shouldClearDisplay = false;
+            } else if (currentInput.length < 15) {
+                // Add the number to the current input, handling leading zeros
+                currentInput = (currentInput === '0' && number !== '.') ? number : currentInput + number;
+            }
+            updateDisplay();
+        }
+
+        // Function to handle operator buttons
+        function handleOperator(op) {
+            // If the current display is 'ANS', use the last answer as the previous input
+            if (currentInput === 'ANS') {
+                previousInput = lastAnswer;
+            } else {
+                if (previousInput && currentInput) {
+                    handleEquals();
+                }
+                previousInput = currentInput;
+            }
+
+            operator = op;
+            currentInput = '';
+            shouldClearDisplay = false;
+        }
+
+        // Function to perform the calculation
+        function handleEquals() {
+            let prev, curr, result;
+            
+            // Case 1: Standard calculation with an operator
+            if (previousInput && operator) {
+                prev = parseFloat(previousInput);
+                // Check if currentInput is 'ANS' and use the last answer if so
+                curr = currentInput === 'ANS' ? parseFloat(lastAnswer) : parseFloat(currentInput);
+            
+                // Save the last operation for repeating
+                lastOperator = operator;
+                lastOperand = curr;
+            
+            // Case 2: Repeat calculation without an operator
+            } else if (lastOperator && lastOperand) {
+                prev = parseFloat(currentInput);
+                curr = lastOperand;
+                // Use the saved operator
+                operator = lastOperator;
+            } else {
+                // No valid operation to perform
+                return;
+            }
+
+            // Perform the calculation based on the operator
+            switch (operator) {
+                case '+':
+                    result = prev + curr;
+                    break;
+                case '-':
+                    result = prev - curr;
+                    break;
+                case '*':
+                    result = prev * curr;
+                    break;
+                case '/':
+                    if (curr === 0) {
+                        if (!d0eErrorDisabled) {
+                            display.textContent = "D0E";
+                            previousInput = '';
+                            operator = null;
+                            currentInput = '';
+                            return;
+                        } else {
+                            // If D0E is disabled, proceed with division by zero
+                            result = prev / curr;
+                        }
+                    } else {
+                        result = prev / curr;
+                    }
+                    break;
+            }
+
+            // Check for Infinity and NaN, and update the display accordingly
+            if (result === Infinity) {
+                currentInput = '∞';
+            } else if (result === -Infinity) {
+                currentInput = '-∞';
+            } else if (isNaN(result)) {
+                // Handle cases like 0/0 which result in NaN
+                currentInput = '∞';
+            } else {
+                currentInput = parseFloat(result.toFixed(8)).toString();
+            }
+
+            lastAnswer = currentInput; // Store the last answer
+            previousInput = '';
+            operator = null;
+            shouldClearDisplay = true;
+            updateDisplay();
+        }
+
+        // Function to handle the ANS button
+        function handleAns() {
+            // Only show 'ANS' if there is a last answer to use
+            if (lastAnswer !== null) {
+                currentInput = 'ANS';
+                shouldClearDisplay = true;
+                updateDisplay();
+            }
+        }
+
+        // Function to clear the calculator
+        function handleClear() {
+            currentInput = '';
+            operator = null;
+            previousInput = '';
+            lastOperator = null;
+            lastOperand = null;
+            shouldClearDisplay = false;
+            updateDisplay();
+        }
+        
+        // Function to handle backspace
+        function handleBackspace() {
+            if (currentInput.length > 0) {
+                currentInput = currentInput.slice(0, -1);
+                updateDisplay();
+            }
+        }
+        
+        // Add event listener for keyboard input
+        document.addEventListener('keydown', (event) => {
+            // Only play sound if the keypress corresponds to an action (not shift/ctrl/etc)
+            if (event.key.length === 1 || event.key === 'Enter' || event.key === 'Backspace' || event.key === 'Escape') {
+                playRibbitSound();
+            }
+
+            const key = event.key;
+            
+            if (/[0-9]/.test(key) || key === '.') {
+                handleNumber(key);
+            } else if (key === '+' || key === '-' || key === '/' || key === '*' || key.toLowerCase() === 'x') {
+                const op = (key.toLowerCase() === 'x') ? '*' : key;
+                handleOperator(op);
+            } else if (key === 'Enter' || key === '=') {
+                handleEquals();
+            } else if (key === 'Backspace' && event.ctrlKey) {
+                handleClear();
+            } else if (key === 'Backspace') {
+                handleBackspace();
+            } else if (key.toLowerCase() === 'a') {
+                handleAns();
+            } else if (key === 'Escape' || key.toLowerCase() === 'c') {
+                handleClear();
+            } else if (key === '`') {
+                d0eErrorDisabled = !d0eErrorDisabled;
+                
+                // Show custom message instead of alert()
+                if (d0eErrorDisabled) {
+                    showMessage("Debug mode has been enabled!");
+                } else {
+                    showMessage("Debug mode has been disabled!");
+                }
+            }
+        });
+    </script>
+</body>
+</html>
